@@ -1,6 +1,6 @@
-import mongoose, { Schema, Document, Model } from 'mongoose';
+import mongoose, { Schema } from 'mongoose';
 
-export interface IBuffer extends Document {
+export interface IBuffer {
   _id: string;
   userId: mongoose.Types.ObjectId;
   name: string;
@@ -35,7 +35,4 @@ const BufferSchema = new Schema<IBuffer>(
 BufferSchema.index({ userId: 1, updatedAt: -1 });
 BufferSchema.index({ userId: 1, deleted: 1 });
 
-const Buffer: Model<IBuffer> =
-  mongoose.models.Buffer || mongoose.model<IBuffer>('Buffer', BufferSchema);
-
-export default Buffer;
+export default mongoose.models.Buffer || mongoose.model<IBuffer>('Buffer', BufferSchema);

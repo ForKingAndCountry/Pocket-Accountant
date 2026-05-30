@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server';
+import mongoose from 'mongoose';
 import dbConnect from '@/lib/mongodb';
-import User from '@/models/User';
+import User, { type IUser } from '@/models/User';
 import { verifyAdminRequest } from '@/lib/adminAuth';
+
+type UserLean = IUser & { _id: mongoose.Types.ObjectId };
 
 export async function GET(request: Request) {
   const denied = verifyAdminRequest(request);
@@ -19,8 +22,10 @@ export async function GET(request: Request) {
       filter.subscriptionStatus = status;
     }
 
-    let users = await User.find(filter).sort({ updatedAt: -1 }).limit(200).lean();
-
+    let users: UserLean[] = await User.find(filter)
+      .sort({ updatedAt: -1 })
+      .limit(200)
+      .lean<UserLean[]>();
     if (q) {
       users = users.filter(
         (u) =>

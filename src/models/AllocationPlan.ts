@@ -1,6 +1,6 @@
-import mongoose, { Schema, Document, Model } from 'mongoose';
+import mongoose, { Schema } from 'mongoose';
 
-export interface IAllocationPlan extends Document {
+export interface IAllocationPlan {
   _id: string;
   userId: mongoose.Types.ObjectId;
   name: string;
@@ -36,8 +36,5 @@ const AllocationPlanSchema = new Schema<IAllocationPlan>(
 
 AllocationPlanSchema.index({ userId: 1, updatedAt: -1 });
 
-const AllocationPlan: Model<IAllocationPlan> =
-  mongoose.models.AllocationPlan ||
+export default mongoose.models.AllocationPlan ||
   mongoose.model<IAllocationPlan>('AllocationPlan', AllocationPlanSchema);
-
-export default AllocationPlan;

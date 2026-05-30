@@ -1,6 +1,6 @@
-import mongoose, { Schema, Document, Model } from 'mongoose';
+import mongoose, { Schema } from 'mongoose';
 
-export interface IWallet extends Document {
+export interface IWallet {
   _id: string;
   userId: mongoose.Types.ObjectId;
   name: string;
@@ -29,7 +29,4 @@ const WalletSchema = new Schema<IWallet>(
 WalletSchema.index({ userId: 1, updatedAt: -1 });
 WalletSchema.index({ userId: 1, deleted: 1 });
 
-const Wallet: Model<IWallet> =
-  mongoose.models.Wallet || mongoose.model<IWallet>('Wallet', WalletSchema);
-
-export default Wallet;
+export default mongoose.models.Wallet || mongoose.model<IWallet>('Wallet', WalletSchema);
