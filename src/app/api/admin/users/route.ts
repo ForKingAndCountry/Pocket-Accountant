@@ -7,7 +7,7 @@ import { verifyAdminRequest } from '@/lib/adminAuth';
 type UserLean = IUser & { _id: mongoose.Types.ObjectId };
 
 export async function GET(request: Request) {
-  const denied = verifyAdminRequest(request);
+  const denied = await verifyAdminRequest(request);
   if (denied) return denied;
 
   try {

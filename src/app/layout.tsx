@@ -8,8 +8,8 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: 'CashSense Admin',
-  description: 'CashSense API and subscription admin',
+  title: 'CashSense',
+  description: 'CashSense API, admin, and Privacy Policy',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

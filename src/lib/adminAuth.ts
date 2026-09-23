@@ -1,29 +1,44 @@
 import { NextResponse } from 'next/server';
+import { ADMIN_SESSION_COOKIE, expectedAdminSessionToken } from '@/lib/adminSession';
 
 const ADMIN_API_KEY = process.env.ADMIN_API_KEY;
 
-export function verifyAdminRequest(request: Request): NextResponse | null {
+function parseCookieHeader(header: string | null): Record<string, string> {
+  if (!header) return {};
+  const out: Record<string, string> = {};
+  for (const part of header.split(';')) {
+    const idx = part.indexOf('=');
+    if (idx === -1) continue;
+    const key = part.slice(0, idx).trim();
+    const value = part.slice(idx + 1).trim();
+    if (key) out[key] = decodeURIComponent(value);
+  }
+  return out;
+}
+
+export async function verifyAdminRequest(request: Request): Promise<NextResponse | null> {
   if (!ADMIN_API_KEY || ADMIN_API_KEY.length < 8) {
-    return NextResponse.json(
-      { error: 'Admin API is not configured. Set ADMIN_API_KEY in .env' },
-      { status: 503 }
-    );
+    return NextResponse.json({ error: 'Admin API is not configured' }, { status: 503 });
   }
 
   const headerKey = request.headers.get('X-Admin-Key')?.trim();
   const authHeader = request.headers.get('Authorization');
-  const bearerKey =
-    authHeader?.startsWith('Bearer ') ? authHeader.slice(7).trim() : null;
-
+  const bearerKey = authHeader?.startsWith('Bearer ') ? authHeader.slice(7).trim() : null;
   const provided = headerKey || bearerKey;
-  if (!provided || provided !== ADMIN_API_KEY.trim()) {
-    return NextResponse.json(
-      { error: 'Unauthorized — check ADMIN_API_KEY in backend/.env' },
-      { status: 401 }
-    );
+
+  if (provided && provided === ADMIN_API_KEY.trim()) {
+    return null;
   }
 
-  return null;
+  // Same-origin staff console: httpOnly session cookie set at /console
+  const cookies = parseCookieHeader(request.headers.get('cookie'));
+  const session = cookies[ADMIN_SESSION_COOKIE];
+  const expected = await expectedAdminSessionToken();
+  if (session && expected && session === expected) {
+    return null;
+  }
+
+  return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 }
 
 export function addSubscriptionDays(from: Date, days: number): Date {

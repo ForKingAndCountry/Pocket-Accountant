@@ -13,7 +13,7 @@ import { generateResetCode, hashResetCode, resetExpiryDate } from '@/lib/passwor
  *   { email, action: 'set_password', newPassword } → directly sets a new password
  */
 export async function POST(request: Request) {
-  const denied = verifyAdminRequest(request);
+  const denied = await verifyAdminRequest(request);
   if (denied) return denied;
 
   try {

@@ -4,7 +4,7 @@ import User from '@/models/User';
 import { addSubscriptionDays, verifyAdminRequest } from '@/lib/adminAuth';
 
 export async function POST(request: Request) {
-  const denied = verifyAdminRequest(request);
+  const denied = await verifyAdminRequest(request);
   if (denied) return denied;
 
   try {

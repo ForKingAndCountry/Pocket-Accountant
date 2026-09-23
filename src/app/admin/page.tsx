@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 
 type UserRow = {
@@ -31,8 +30,6 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function AdminDashboardPage() {
-  const [adminKey, setAdminKey] = useState('');
-  const [storedKey, setStoredKey] = useState<string | null>(null);
   const [users, setUsers] = useState<UserRow[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [filter, setFilter] = useState('all');
@@ -42,54 +39,38 @@ export default function AdminDashboardPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
 
-  useEffect(() => {
-    const saved = sessionStorage.getItem('pa_admin_key');
-    if (saved) setStoredKey(saved);
-  }, []);
-
   const loadUsers = useCallback(async () => {
-    const key = storedKey;
-    if (!key) return;
     setLoading(true);
     setError(null);
     try {
       const params = new URLSearchParams();
       if (filter !== 'all') params.set('status', filter);
       if (search.trim()) params.set('q', search.trim());
-      const res = await fetch(`/api/admin/users?${params}`, {
-        headers: { 'X-Admin-Key': key },
-      });
+      const res = await fetch(`/api/admin/users?${params}`, { credentials: 'same-origin' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to load users');
       setUsers(data.users);
       setSummary(data.summary);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to load');
-      if (e instanceof Error && e.message.includes('Unauthorized')) {
-        sessionStorage.removeItem('pa_admin_key');
-        setStoredKey(null);
-      }
     } finally {
       setLoading(false);
     }
-  }, [storedKey, filter, search]);
+  }, [filter, search]);
 
   useEffect(() => {
-    if (storedKey) loadUsers();
-  }, [storedKey, loadUsers]);
+    loadUsers();
+  }, [loadUsers]);
 
   async function runAction(userId: string, action: string, days?: number) {
-    if (!storedKey) return;
     setBusyId(userId);
     setError(null);
     setInfo(null);
     try {
       const res = await fetch('/api/admin/verify-payment', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Admin-Key': storedKey,
-        },
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, action, days }),
       });
       const data = await res.json();
@@ -103,17 +84,14 @@ export default function AdminDashboardPage() {
   }
 
   async function issueResetCode(email: string) {
-    if (!storedKey) return;
     setBusyId(email);
     setError(null);
     setInfo(null);
     try {
       const res = await fetch('/api/admin/reset-password', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Admin-Key': storedKey,
-        },
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, action: 'issue_code' }),
       });
       const data = await res.json();
@@ -128,64 +106,13 @@ export default function AdminDashboardPage() {
     }
   }
 
-  function saveKey(e: React.FormEvent) {
-    e.preventDefault();
-    sessionStorage.setItem('pa_admin_key', adminKey.trim());
-    setStoredKey(adminKey.trim());
-    setAdminKey('');
-  }
-
   function signOut() {
-    sessionStorage.removeItem('pa_admin_key');
-    setStoredKey(null);
     setUsers([]);
     setSummary(null);
     setInfo(null);
-  }
-
-  if (!storedKey) {
-    return (
-      <main style={styles.authPage}>
-        <div style={styles.authCard}>
-          <div style={styles.brandRow}>
-            <div style={styles.mark}>CS</div>
-            <div>
-              <div style={styles.brandName}>CashSense</div>
-              <div style={styles.brandSub}>Admin access</div>
-            </div>
-          </div>
-
-          <h1 style={styles.authTitle}>Sign in to admin</h1>
-          <p style={styles.authSubtitle}>
-            Enter the <strong>ADMIN_API_KEY</strong> from your server environment to manage users,
-            payments, and password resets.
-          </p>
-
-          <form onSubmit={saveKey} style={styles.form}>
-            <label style={styles.label} htmlFor="admin-key">
-              Admin API key
-            </label>
-            <input
-              id="admin-key"
-              type="password"
-              value={adminKey}
-              onChange={(e) => setAdminKey(e.target.value)}
-              placeholder="Paste your key"
-              style={styles.input}
-              required
-              autoComplete="current-password"
-            />
-            <button type="submit" style={styles.primaryBtnFull}>
-              Continue to dashboard
-            </button>
-          </form>
-
-          <Link href="/" style={styles.backLink}>
-            ← Back to API home
-          </Link>
-        </div>
-      </main>
-    );
+    void fetch('/api/console/logout', { method: 'POST' }).finally(() => {
+      window.location.href = '/privacy';
+    });
   }
 
   return (
@@ -199,9 +126,6 @@ export default function AdminDashboardPage() {
           </div>
         </div>
         <div style={styles.topActions}>
-          <Link href="/" style={styles.ghostLink}>
-            API home
-          </Link>
           <button type="button" onClick={loadUsers} style={styles.secondaryBtn} disabled={loading}>
             Refresh
           </button>
