@@ -10,14 +10,17 @@ export function verifyAdminRequest(request: Request): NextResponse | null {
     );
   }
 
-  const headerKey = request.headers.get('X-Admin-Key');
+  const headerKey = request.headers.get('X-Admin-Key')?.trim();
   const authHeader = request.headers.get('Authorization');
   const bearerKey =
     authHeader?.startsWith('Bearer ') ? authHeader.slice(7).trim() : null;
 
-  const provided = headerKey ?? bearerKey;
-  if (!provided || provided !== ADMIN_API_KEY) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const provided = headerKey || bearerKey;
+  if (!provided || provided !== ADMIN_API_KEY.trim()) {
+    return NextResponse.json(
+      { error: 'Unauthorized — check ADMIN_API_KEY in backend/.env' },
+      { status: 401 }
+    );
   }
 
   return null;

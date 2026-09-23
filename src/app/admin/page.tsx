@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 
 type UserRow = {
@@ -39,6 +40,7 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
 
   useEffect(() => {
     const saved = sessionStorage.getItem('pa_admin_key');
@@ -80,6 +82,7 @@ export default function AdminDashboardPage() {
     if (!storedKey) return;
     setBusyId(userId);
     setError(null);
+    setInfo(null);
     try {
       const res = await fetch('/api/admin/verify-payment', {
         method: 'POST',
@@ -99,6 +102,32 @@ export default function AdminDashboardPage() {
     }
   }
 
+  async function issueResetCode(email: string) {
+    if (!storedKey) return;
+    setBusyId(email);
+    setError(null);
+    setInfo(null);
+    try {
+      const res = await fetch('/api/admin/reset-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Admin-Key': storedKey,
+        },
+        body: JSON.stringify({ email, action: 'issue_code' }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to issue code');
+      setInfo(
+        `Reset code for ${data.email}: ${data.code} (expires in 15 min). Send this on WhatsApp.`
+      );
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to issue code');
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   function saveKey(e: React.FormEvent) {
     e.preventDefault();
     sessionStorage.setItem('pa_admin_key', adminKey.trim());
@@ -111,29 +140,49 @@ export default function AdminDashboardPage() {
     setStoredKey(null);
     setUsers([]);
     setSummary(null);
+    setInfo(null);
   }
 
   if (!storedKey) {
     return (
-      <main style={styles.centered}>
-        <div style={styles.card}>
-          <h1 style={styles.title}>Admin sign-in</h1>
-          <p style={styles.subtitle}>
-            Enter your <strong>ADMIN_API_KEY</strong> from the server <code>.env</code> file.
+      <main style={styles.authPage}>
+        <div style={styles.authCard}>
+          <div style={styles.brandRow}>
+            <div style={styles.mark}>CS</div>
+            <div>
+              <div style={styles.brandName}>CashSense</div>
+              <div style={styles.brandSub}>Admin access</div>
+            </div>
+          </div>
+
+          <h1 style={styles.authTitle}>Sign in to admin</h1>
+          <p style={styles.authSubtitle}>
+            Enter the <strong>ADMIN_API_KEY</strong> from your server environment to manage users,
+            payments, and password resets.
           </p>
-          <form onSubmit={saveKey}>
+
+          <form onSubmit={saveKey} style={styles.form}>
+            <label style={styles.label} htmlFor="admin-key">
+              Admin API key
+            </label>
             <input
+              id="admin-key"
               type="password"
               value={adminKey}
               onChange={(e) => setAdminKey(e.target.value)}
-              placeholder="Admin API key"
+              placeholder="Paste your key"
               style={styles.input}
               required
+              autoComplete="current-password"
             />
-            <button type="submit" style={styles.primaryBtn}>
-              Continue
+            <button type="submit" style={styles.primaryBtnFull}>
+              Continue to dashboard
             </button>
           </form>
+
+          <Link href="/" style={styles.backLink}>
+            ← Back to API home
+          </Link>
         </div>
       </main>
     );
@@ -141,14 +190,18 @@ export default function AdminDashboardPage() {
 
   return (
     <main style={styles.page}>
-      <header style={styles.header}>
-        <div>
-          <h1 style={{ margin: 0, color: '#0a5d4e' }}>User & subscription admin</h1>
-          <p style={{ margin: '6px 0 0', color: '#666', fontSize: 14 }}>
-            Approve payments to grant app access. Deny or expire to soft-lock the mobile app.
-          </p>
+      <header style={styles.topBar}>
+        <div style={styles.brandRow}>
+          <div style={styles.mark}>CS</div>
+          <div>
+            <div style={styles.brandName}>CashSense Admin</div>
+            <div style={styles.brandSub}>Users · subscriptions · support</div>
+          </div>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={styles.topActions}>
+          <Link href="/" style={styles.ghostLink}>
+            API home
+          </Link>
           <button type="button" onClick={loadUsers} style={styles.secondaryBtn} disabled={loading}>
             Refresh
           </button>
@@ -158,13 +211,20 @@ export default function AdminDashboardPage() {
         </div>
       </header>
 
+      <section style={styles.intro}>
+        <h1 style={styles.pageTitle}>Subscription desk</h1>
+        <p style={styles.pageLede}>
+          Approve payments to unlock the app. Issue password reset codes for WhatsApp support.
+        </p>
+      </section>
+
       {summary && (
         <div style={styles.statsRow}>
           <Stat label="Total" value={summary.total} />
           <Stat label="Trial" value={summary.trial} color="#1565c0" />
           <Stat label="Active" value={summary.active} color="#0e7c66" />
           <Stat label="Expired" value={summary.expired} color="#c62828" />
-          <Stat label="Needs attention" value={summary.needsAttention} color="#ef6c00" />
+          <Stat label="Attention" value={summary.needsAttention} color="#ef6c00" />
         </div>
       )}
 
@@ -189,7 +249,8 @@ export default function AdminDashboardPage() {
       </div>
 
       {error && <div style={styles.error}>{error}</div>}
-      {loading && <p style={{ color: '#666' }}>Loading…</p>}
+      {info && <div style={styles.info}>{info}</div>}
+      {loading && <p style={{ color: '#6b7c76' }}>Loading…</p>}
 
       <div style={styles.tableWrap}>
         <table style={styles.table}>
@@ -203,11 +264,11 @@ export default function AdminDashboardPage() {
           </thead>
           <tbody>
             {users.map((u) => (
-              <tr key={u.id} style={{ borderTop: '1px solid #eee' }}>
+              <tr key={u.id} style={{ borderTop: '1px solid #e8efec' }}>
                 <td style={styles.td}>
-                  <strong>{u.name}</strong>
+                  <strong style={{ color: '#12201c' }}>{u.name}</strong>
                   <br />
-                  <span style={{ fontSize: 13, color: '#666' }}>{u.email}</span>
+                  <span style={{ fontSize: 13, color: '#6b7c76' }}>{u.email}</span>
                 </td>
                 <td style={styles.td}>
                   <span
@@ -231,6 +292,18 @@ export default function AdminDashboardPage() {
                 <td style={styles.td}>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                     <ActionBtn
+                      label="Approve 1y"
+                      color="#0e7c66"
+                      disabled={busyId === u.id}
+                      onClick={() => runAction(u.id, 'approve', 365)}
+                    />
+                    <ActionBtn
+                      label="Extend 1y"
+                      color="#1565c0"
+                      disabled={busyId === u.id}
+                      onClick={() => runAction(u.id, 'extend', 365)}
+                    />
+                    <ActionBtn
                       label="Approve 30d"
                       color="#0e7c66"
                       disabled={busyId === u.id}
@@ -251,8 +324,14 @@ export default function AdminDashboardPage() {
                     <ActionBtn
                       label="Deny"
                       color="#c62828"
-                      disabled={busyId === u.id}
+                      disabled={busyId === u.id || busyId === u.email}
                       onClick={() => runAction(u.id, 'deny')}
+                    />
+                    <ActionBtn
+                      label="Reset code"
+                      color="#5e35b1"
+                      disabled={busyId === u.id || busyId === u.email}
+                      onClick={() => issueResetCode(u.email)}
                     />
                   </div>
                 </td>
@@ -261,24 +340,30 @@ export default function AdminDashboardPage() {
           </tbody>
         </table>
         {!loading && users.length === 0 && (
-          <p style={{ padding: 24, textAlign: 'center', color: '#666' }}>No users found.</p>
+          <p style={{ padding: 28, textAlign: 'center', color: '#6b7c76' }}>No users found.</p>
         )}
       </div>
 
-      <section style={{ ...styles.card, marginTop: 24 }}>
-        <h2 style={{ margin: '0 0 8px', fontSize: 16 }}>How this works</h2>
-        <ul style={{ margin: 0, paddingLeft: 20, color: '#555', lineHeight: 1.6, fontSize: 14 }}>
+      <section style={styles.helpCard}>
+        <h2 style={{ margin: '0 0 10px', fontSize: 16, color: '#0a5d4e' }}>Quick guide</h2>
+        <ul style={{ margin: 0, paddingLeft: 18, color: '#4d5f58', lineHeight: 1.65, fontSize: 14 }}>
           <li>
-            <strong>Approve</strong> — user paid; set status to <em>active</em> for 30 days (full app access).
+            <strong>Approve 1y</strong> — mark paid; active for 365 days (yearly plan).
           </li>
           <li>
-            <strong>Extend</strong> — add 30 days to an existing active subscription.
+            <strong>Extend 1y</strong> — add 365 days from the current end date (or today if expired).
           </li>
           <li>
-            <strong>Grace</strong> — temporary access (offline-friendly) for 7 days.
+            <strong>Approve / Extend 30d</strong> — short trial or prorated access.
           </li>
           <li>
-            <strong>Deny</strong> — set <em>expired</em>; mobile app soft-locks (view only, no edits).
+            <strong>Grace</strong> — temporary access for 7 days.
+          </li>
+          <li>
+            <strong>Deny</strong> — expire access (view-only in the app).
+          </li>
+          <li>
+            <strong>Reset code</strong> — 6-digit code for WhatsApp (15 minutes).
           </li>
         </ul>
       </section>
@@ -286,11 +371,11 @@ export default function AdminDashboardPage() {
   );
 }
 
-function Stat({ label, value, color = '#333' }: { label: string; value: number; color?: string }) {
+function Stat({ label, value, color = '#12201c' }: { label: string; value: number; color?: string }) {
   return (
     <div style={styles.stat}>
-      <div style={{ fontSize: 22, fontWeight: 800, color }}>{value}</div>
-      <div style={{ fontSize: 12, color: '#666' }}>{label}</div>
+      <div style={{ fontSize: 24, fontWeight: 800, color }}>{value}</div>
+      <div style={{ fontSize: 12, color: '#6b7c76', fontWeight: 600, marginTop: 2 }}>{label}</div>
     </div>
   );
 }
@@ -329,99 +414,187 @@ function ActionBtn({
 }
 
 const styles: Record<string, React.CSSProperties> = {
-  page: { maxWidth: 1100, margin: '0 auto', padding: '24px 20px 48px' },
-  centered: {
+  page: { maxWidth: 1120, margin: '0 auto', padding: '28px 20px 56px' },
+  authPage: {
     minHeight: '100vh',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
   },
-  card: {
-    background: '#fff',
-    borderRadius: 16,
-    padding: 24,
-    boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
+  authCard: {
+    width: '100%',
+    maxWidth: 440,
+    background: 'rgba(255,255,255,0.94)',
+    border: '1px solid rgba(14,124,102,0.12)',
+    borderRadius: 24,
+    padding: '32px 28px 24px',
+    boxShadow: '0 24px 60px rgba(10,93,78,0.08)',
   },
-  title: { margin: '0 0 8px', color: '#0a5d4e' },
-  subtitle: { margin: '0 0 20px', color: '#555', lineHeight: 1.5, fontSize: 14 },
-  header: {
+  brandRow: { display: 'flex', alignItems: 'center', gap: 12 },
+  mark: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    background: 'linear-gradient(145deg, #0e7c66, #0a5d4e)',
+    color: '#fff',
+    fontWeight: 800,
+    fontSize: 14,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  brandName: { fontWeight: 800, fontSize: 17, color: '#0a5d4e', lineHeight: 1.1 },
+  brandSub: { fontSize: 12, color: '#6b7c76', marginTop: 2 },
+  authTitle: {
+    margin: '28px 0 8px',
+    fontSize: 28,
+    fontWeight: 800,
+    color: '#12201c',
+    letterSpacing: '-0.02em',
+  },
+  authSubtitle: { margin: '0 0 22px', color: '#4d5f58', lineHeight: 1.55, fontSize: 14 },
+  form: { display: 'flex', flexDirection: 'column' },
+  label: {
+    fontSize: 12,
+    fontWeight: 700,
+    color: '#0a5d4e',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: '0.04em',
+  },
+  topBar: {
     display: 'flex',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: 16,
-    marginBottom: 20,
+    marginBottom: 28,
     flexWrap: 'wrap',
+    background: 'rgba(255,255,255,0.88)',
+    border: '1px solid rgba(14,124,102,0.1)',
+    borderRadius: 18,
+    padding: '14px 16px',
   },
+  topActions: { display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' },
+  intro: { marginBottom: 18 },
+  pageTitle: {
+    margin: 0,
+    fontSize: 30,
+    fontWeight: 800,
+    color: '#12201c',
+    letterSpacing: '-0.02em',
+  },
+  pageLede: { margin: '8px 0 0', color: '#4d5f58', fontSize: 15 },
   statsRow: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
     gap: 12,
-    marginBottom: 20,
+    marginBottom: 18,
   },
   stat: {
-    background: '#fff',
-    borderRadius: 12,
+    background: 'rgba(255,255,255,0.92)',
+    borderRadius: 14,
     padding: 16,
-    boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+    border: '1px solid #e2eee9',
   },
   toolbar: { display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' },
   input: {
     width: '100%',
-    padding: '12px 14px',
-    borderRadius: 10,
-    border: '1px solid #ddd',
+    padding: '13px 14px',
+    borderRadius: 12,
+    border: '1px solid #d5e3dd',
     fontSize: 15,
-    marginBottom: 12,
+    marginBottom: 14,
     boxSizing: 'border-box',
+    background: '#fff',
+    outline: 'none',
   },
   select: {
-    padding: '10px 12px',
-    borderRadius: 10,
-    border: '1px solid #ddd',
+    padding: '12px 12px',
+    borderRadius: 12,
+    border: '1px solid #d5e3dd',
     fontSize: 14,
+    background: '#fff',
   },
   primaryBtn: {
-    background: '#0e7c66',
+    background: 'linear-gradient(145deg, #0e7c66, #0a5d4e)',
     color: '#fff',
     border: 'none',
-    borderRadius: 10,
+    borderRadius: 12,
     padding: '12px 18px',
-    fontWeight: 600,
+    fontWeight: 700,
     cursor: 'pointer',
+  },
+  primaryBtnFull: {
+    background: 'linear-gradient(145deg, #0e7c66, #0a5d4e)',
+    color: '#fff',
+    border: 'none',
+    borderRadius: 12,
+    padding: '14px 18px',
+    fontWeight: 700,
+    cursor: 'pointer',
+    width: '100%',
+    boxShadow: '0 10px 24px rgba(14,124,102,0.25)',
   },
   secondaryBtn: {
     background: '#fff',
-    color: '#333',
-    border: '1px solid #ddd',
-    borderRadius: 10,
+    color: '#234039',
+    border: '1px solid #d5e3dd',
+    borderRadius: 12,
     padding: '10px 14px',
     fontWeight: 600,
     cursor: 'pointer',
+  },
+  backLink: {
+    display: 'block',
+    marginTop: 18,
+    textAlign: 'center',
+    color: '#0a5d4e',
+    fontWeight: 600,
+    fontSize: 14,
+    textDecoration: 'none',
+  },
+  ghostLink: {
+    color: '#0a5d4e',
+    fontWeight: 600,
+    fontSize: 14,
+    textDecoration: 'none',
+    padding: '8px 4px',
   },
   error: {
     background: '#ffebee',
     color: '#c62828',
     padding: '12px 16px',
-    borderRadius: 10,
+    borderRadius: 12,
     marginBottom: 16,
     fontSize: 14,
   },
+  info: {
+    background: '#e8f6f2',
+    color: '#0a5d4e',
+    padding: '12px 16px',
+    borderRadius: 12,
+    marginBottom: 16,
+    fontSize: 14,
+    fontWeight: 600,
+    border: '1px solid #b7e4d7',
+  },
   tableWrap: {
-    background: '#fff',
-    borderRadius: 16,
+    background: 'rgba(255,255,255,0.95)',
+    borderRadius: 18,
     overflow: 'hidden',
-    boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
+    border: '1px solid #e2eee9',
+    boxShadow: '0 12px 32px rgba(10,93,78,0.05)',
   },
   table: { width: '100%', borderCollapse: 'collapse' },
   th: {
     textAlign: 'left',
     padding: '14px 16px',
-    fontSize: 12,
+    fontSize: 11,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    color: '#888',
-    background: '#fafafa',
+    letterSpacing: '0.06em',
+    color: '#6b7c76',
+    background: '#f7fbf9',
   },
   td: { padding: '14px 16px', verticalAlign: 'top' },
   badge: {
@@ -431,5 +604,12 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 12,
     fontWeight: 700,
     textTransform: 'capitalize',
+  },
+  helpCard: {
+    marginTop: 22,
+    background: 'rgba(255,255,255,0.92)',
+    borderRadius: 18,
+    padding: 22,
+    border: '1px solid #e2eee9',
   },
 };

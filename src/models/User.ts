@@ -7,6 +7,9 @@ export interface IUser {
   baseCurrency: string;
   subscriptionStatus: 'trial' | 'active' | 'expired' | 'grace';
   subscriptionEndsAt: Date;
+  /** bcrypt hash of the 6-digit password reset code */
+  passwordResetCodeHash?: string | null;
+  passwordResetExpires?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -24,8 +27,10 @@ const UserSchema = new Schema<IUser>(
     },
     subscriptionEndsAt: {
       type: Date,
-      default: () => new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30-day free trial
+      default: () => new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
     },
+    passwordResetCodeHash: { type: String, default: null },
+    passwordResetExpires: { type: Date, default: null },
   },
   { timestamps: true }
 );
