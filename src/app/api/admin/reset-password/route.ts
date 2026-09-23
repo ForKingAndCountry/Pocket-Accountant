@@ -35,12 +35,12 @@ export async function POST(request: Request) {
     if (action === 'issue_code') {
       const code = generateResetCode();
       user.passwordResetCodeHash = await hashResetCode(code);
-      user.passwordResetExpires = resetExpiryDate(15);
+      user.passwordResetExpires = resetExpiryDate();
       await user.save();
 
       return NextResponse.json({
         success: true,
-        message: 'Reset code issued. Share it with the user via WhatsApp (expires in 15 minutes).',
+        message: 'Reset code issued. Share it with the user via WhatsApp (expires in 30 minutes).',
         code,
         email: user.email,
         name: user.name,

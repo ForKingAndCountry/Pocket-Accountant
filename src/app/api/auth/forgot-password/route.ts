@@ -9,7 +9,7 @@ import { generateResetCode, hashResetCode, resetExpiryDate } from '@/lib/passwor
  * Body: { email }
  *
  * Always returns a generic success message (does not reveal whether the email exists).
- * When SMTP is configured, emails a 6-digit code that expires in 15 minutes.
+ * When SMTP is configured, emails a 6-digit code that expires in 30 minutes.
  */
 export async function POST(request: Request) {
   try {
@@ -36,7 +36,7 @@ export async function POST(request: Request) {
 
     const code = generateResetCode();
     user.passwordResetCodeHash = await hashResetCode(code);
-    user.passwordResetExpires = resetExpiryDate(15);
+    user.passwordResetExpires = resetExpiryDate();
     await user.save();
 
     let emailSent = false;
@@ -49,7 +49,7 @@ export async function POST(request: Request) {
       emailSent = result.sent;
     } else {
       // Dev / pre-SMTP: log so you can test without mail.
-      console.info(`[forgot-password] Reset code for ${user.email}: ${code} (expires in 15m)`);
+      console.info(`[forgot-password] Reset code for ${user.email}: ${code} (expires in 30m)`);
     }
 
     return NextResponse.json({

@@ -13,7 +13,11 @@ export async function POST(request: Request) {
     await dbConnect();
     const body = await request.json();
     const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
-    const code = typeof body.code === 'string' ? body.code.trim() : '';
+    // Keep leading zeros; strip spaces/dashes users sometimes paste.
+    const code =
+      typeof body.code === 'string' || typeof body.code === 'number'
+        ? String(body.code).replace(/\D/g, '')
+        : '';
     const newPassword = typeof body.newPassword === 'string' ? body.newPassword : '';
 
     if (!email || !code || !newPassword) {
@@ -37,24 +41,34 @@ export async function POST(request: Request) {
     const user = await User.findOne({ email });
     if (!user || !user.passwordResetCodeHash || !user.passwordResetExpires) {
       return NextResponse.json(
-        { error: 'Invalid or expired reset code' },
+        {
+          error:
+            'No active reset code for this email. Message WhatsApp support to get a new code.',
+        },
         { status: 400 }
       );
     }
 
-    if (user.passwordResetExpires.getTime() < Date.now()) {
+    const expiresAt = new Date(user.passwordResetExpires).getTime();
+    if (!Number.isFinite(expiresAt) || expiresAt < Date.now()) {
       user.passwordResetCodeHash = null;
       user.passwordResetExpires = null;
       await user.save();
       return NextResponse.json(
-        { error: 'Reset code has expired. Request a new one.' },
+        { error: 'Reset code has expired. Message WhatsApp support for a new one.' },
         { status: 400 }
       );
     }
 
     const ok = await verifyResetCode(code, user.passwordResetCodeHash);
     if (!ok) {
-      return NextResponse.json({ error: 'Invalid or expired reset code' }, { status: 400 });
+      return NextResponse.json(
+        {
+          error:
+            'Incorrect reset code. Use the latest 6-digit code from WhatsApp support.',
+        },
+        { status: 400 }
+      );
     }
 
     user.passwordHash = await bcrypt.hash(newPassword, 10);

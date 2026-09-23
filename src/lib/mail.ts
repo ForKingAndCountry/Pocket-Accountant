@@ -41,7 +41,7 @@ export async function sendPasswordResetEmail(params: {
         '',
         `Your CashSense password reset code is: ${params.code}`,
         '',
-        'This code expires in 15 minutes.',
+        'This code expires in 30 minutes.',
         'If you did not request a reset, you can ignore this email.',
         '',
         '— CashSense Support',
@@ -50,7 +50,7 @@ export async function sendPasswordResetEmail(params: {
         <p>Hello ${params.name || 'there'},</p>
         <p>Your CashSense password reset code is:</p>
         <p style="font-size:28px;font-weight:800;letter-spacing:4px;">${params.code}</p>
-        <p>This code expires in <strong>15 minutes</strong>.</p>
+        <p>This code expires in <strong>30 minutes</strong>.</p>
         <p>If you did not request a reset, you can ignore this email.</p>
         <p>— CashSense Support</p>
       `,

@@ -14,6 +14,7 @@ export async function verifyResetCode(code: string, hash: string): Promise<boole
   return bcrypt.compare(code, hash);
 }
 
-export function resetExpiryDate(minutes = 15): Date {
+/** Default 30 minutes so WhatsApp handoff has enough time. */
+export function resetExpiryDate(minutes = 30): Date {
   return new Date(Date.now() + minutes * 60 * 1000);
 }

@@ -119,7 +119,7 @@ export default function AdminDashboardPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to issue code');
       setInfo(
-        `Reset code for ${data.email}: ${data.code} (expires in 15 min). Send this on WhatsApp.`
+        `Reset code for ${data.email}: ${data.code} (expires in 30 min). Send this on WhatsApp.`
       );
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to issue code');
@@ -363,7 +363,7 @@ export default function AdminDashboardPage() {
             <strong>Deny</strong> — expire access (view-only in the app).
           </li>
           <li>
-            <strong>Reset code</strong> — 6-digit code for WhatsApp (15 minutes).
+            <strong>Reset code</strong> — 6-digit code for WhatsApp (30 minutes).
           </li>
         </ul>
       </section>
