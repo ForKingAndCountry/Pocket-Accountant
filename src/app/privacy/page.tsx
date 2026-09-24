@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { DeletionRequestForm } from './DeletionRequestForm';
 
 export const metadata: Metadata = {
   title: 'Privacy Policy · CashSense',
@@ -21,6 +22,11 @@ export default function PrivacyPolicyPage() {
           </Link>
           <h1 style={styles.title}>Privacy Policy</h1>
           <p style={styles.updated}>Last updated: September 23, 2026</p>
+          <p style={{ margin: '12px 0 0' }}>
+            <a href="#delete-request" style={styles.a}>
+              Request account or data deletion
+            </a>
+          </p>
         </header>
 
         <p style={styles.lede}>
@@ -271,15 +277,21 @@ export default function PrivacyPolicyPage() {
         <Section n="9" title="Account Deletion">
           <p style={styles.p}>
             If you have a CashSense account, you may request deletion of your account and associated
-            personal information.
+            personal information, or request deletion of your stored data.
           </p>
           <p style={styles.p}>
-            To request account deletion, contact:{' '}
+            Use the form below to prepare an email to{' '}
             <a href="mailto:obiaws96@gmail.com" style={styles.a}>
               obiaws96@gmail.com
             </a>
-            . Your request should identify the CashSense account you want deleted.
+            . Your request should identify the CashSense account email you want processed.
           </p>
+          <p style={styles.p}>
+            <a href="#delete-request" style={styles.a}>
+              Jump to deletion request form →
+            </a>
+          </p>
+          <DeletionRequestForm />
           <p style={styles.p}>
             When a valid account-deletion request is processed, we will delete or anonymize
             associated personal information and account data within a reasonable period, subject to
