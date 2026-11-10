@@ -44,7 +44,7 @@ export default function PrivacyPolicyPage() {
         <Section n="1" title="About CashSense">
           <p style={styles.p}>
             CashSense is a personal money management application that helps users track income and
-            spending, manage wallets and currencies, plan savings, manage debts, create allocations,
+            spending, manage wallets and currencies, plan savings, manage obligations, create allocations,
             and generate financial reports.
           </p>
           <p style={styles.p}>
@@ -95,7 +95,7 @@ export default function PrivacyPolicyPage() {
             <li>Wallet names and balances</li>
             <li>Currency information and custom exchange rates</li>
             <li>Savings goals and savings jar information</li>
-            <li>Debt information</li>
+            <li>Obligation information</li>
             <li>Allocation percentages and financial plans</li>
             <li>Reports generated through the application</li>
           </ul>
@@ -161,7 +161,7 @@ export default function PrivacyPolicyPage() {
             <li>Provide cloud backup where enabled</li>
             <li>Calculate financial summaries and allocations</li>
             <li>Display wallet balances and currency conversions</li>
-            <li>Track savings goals and debts</li>
+            <li>Track savings goals and obligations</li>
             <li>Generate reports</li>
             <li>Manage trial and subscription status</li>
             <li>Provide customer support</li>
@@ -180,7 +180,7 @@ export default function PrivacyPolicyPage() {
           <p style={styles.p}>
             CashSense is a personal money-management tool. The financial information you enter is
             used to provide features such as monthly income and spending summaries, spending
-            category breakdowns, wallet balances, allocation tracking, savings progress, debt
+            category breakdowns, wallet balances, allocation tracking, savings progress, obligation
             tracking, currency conversion, and financial reports.
           </p>
           <p style={styles.p}>
